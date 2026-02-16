@@ -70,11 +70,22 @@
         }
         textarea:focus { border-color: var(--accent); outline: none; }
 
-        /* CALENDAR STYLE */
-        .date-control { background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px dashed #ccc; text-align: center; }
+        /* OPTIONS & CALENDAR */
+        .options-wrapper {
+            background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px; 
+            border: 1px dashed #ccc; display: flex; flex-direction: column; gap: 15px; align-items: center;
+        }
+
+        .checkbox-group {
+            display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;
+        }
+        .checkbox-label {
+            display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; font-size: 14px;
+        }
+
         .calendar-wrapper {
             display: none; margin-top: 15px; background: white; border: 1px solid #ddd; border-radius: 8px; padding: 10px;
-            max-width: 350px; margin-left: auto; margin-right: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            max-width: 350px; width: 100%; margin-left: auto; margin-right: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
         .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; color: var(--primary); }
         .cal-btn { cursor: pointer; padding: 5px 10px; background: #eee; border-radius: 5px; user-select: none; }
@@ -85,7 +96,6 @@
         .cal-day:hover { background-color: #ecf0f1; }
         .cal-day.selected { background-color: var(--accent); color: white; font-weight: bold; }
         .cal-day.empty { cursor: default; pointer-events: none; }
-        /* Highlight hari Senin di Grid agar user tahu */
         .cal-day-name:nth-child(1) { color: var(--accent); font-weight: 900; } 
 
         button.btn-main {
@@ -212,12 +222,20 @@
             </div>
         </div>
 
-        <div class="date-control">
-            <label style="cursor: pointer;">
-                <input type="checkbox" id="useDate" onchange="toggleDate()"> 📅 Tampilkan Tanggal?
-            </label>
+        <div class="options-wrapper">
+            <div class="checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="allowDuplicate" checked> 
+                    🔄 Ratakan Jumlah Siswa? (Ada yang rangkap)
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="useDate" onchange="toggleDate()"> 
+                    📅 Tampilkan Tanggal?
+                </label>
+            </div>
+            
             <input type="hidden" id="selectedDateValue">
-
+            
             <div class="calendar-wrapper" id="calendarWrapper">
                 <div class="cal-header">
                     <div class="cal-btn" onclick="changeMonth(-1)">❮</div>
@@ -230,7 +248,7 @@
 
         <button class="btn-main" onclick="startGeneration()">🎲 ACAK & GENERATE JADWAL</button>
 
-        <div class="footer-credit">Created by <b>SiPiko Developer</b> &copy; 2024</div>
+        <div class="footer-credit">Created by <b>The Alus</b> &copy; 2026</div>
     </div>
 
     <div id="resultPage">
@@ -250,7 +268,6 @@
     </div>
 
     <script>
-        // --- SCRIPT PENGAMAN (ANTI-MALING) ---
         document.addEventListener('contextmenu', event => event.preventDefault());
         document.onkeydown = function(e) {
             if(e.keyCode == 123) { return false; }
@@ -263,7 +280,6 @@
         const days = ["SENIN", "SELASA", "RABU", "KAMIS", "JUMAT", "SABTU"];
         const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
-        // --- CALENDAR LOGIC (SMART MONDAY) ---
         let currDate = new Date();
         let currMonth = currDate.getMonth();
         let currYear = currDate.getFullYear();
@@ -318,25 +334,19 @@
                 const dayDiv = document.createElement('div');
                 dayDiv.className = `cal-day ${isSelected ? 'selected' : ''}`;
                 dayDiv.innerText = i;
-                // LOGIKA SMART MONDAY: Klik apapun, cari Seninnya.
                 dayDiv.onclick = () => selectDate(i);
                 grid.appendChild(dayDiv);
             }
         }
 
         function selectDate(day) {
-            // 1. Ambil tanggal yang diklik
             let clickedDate = new Date(currYear, currMonth, day);
-            // 2. Cari hari apa (0=Minggu, 1=Senin...)
             let dayIndex = clickedDate.getDay();
-            // 3. Hitung selisih untuk mundur ke Senin
             let diff = dayIndex === 0 ? 6 : dayIndex - 1;
-            // 4. Set selectedDate jadi Senin minggu itu
             clickedDate.setDate(clickedDate.getDate() - diff);
-            
             selectedDate = clickedDate;
             updateHiddenInput();
-            renderCalendar(); // Re-render untuk update visual
+            renderCalendar();
         }
 
         function updateHiddenInput() {
@@ -362,9 +372,15 @@
             let rawFemale = document.getElementById('inputFemale').value.split('\n');
             let males = rawMale.map(cleanName).filter(n => n.length > 0);
             let females = rawFemale.map(cleanName).filter(n => n.length > 0);
-            males = [...new Set(males)]; females = [...new Set(females)];
+            
+            males = [...new Set(males)];
+            females = [...new Set(females)];
+
             document.getElementById('inputMale').value = males.join('\n');
             document.getElementById('inputFemale').value = females.join('\n');
+
+            // --- LOGIC BARU: CEK CHECKBOX RATA/TIDAK ---
+            const allowDuplicate = document.getElementById('allowDuplicate').checked;
 
             function balanceArray(arr) {
                 if (arr.length === 0) return arr;
@@ -374,15 +390,48 @@
                 return tempArr;
             }
 
-            let finalMales = balanceArray(males);
-            let finalFemales = balanceArray(females);
-            shuffle(finalMales); shuffle(finalFemales);
+            let finalMales, finalFemales;
+
+            if (allowDuplicate) {
+                // Mode Lama: Pad array dengan duplikat
+                finalMales = balanceArray(males);
+                finalFemales = balanceArray(females);
+            } else {
+                // Mode Baru: Biarkan murni
+                finalMales = [...males];
+                finalFemales = [...females];
+            }
+
+            shuffle(finalMales);
+            shuffle(finalFemales);
 
             let schedule = Array.from({length: 6}, () => ({ piket: [], doa: [] }));
-            finalMales.forEach((name, i) => schedule[i % 6].piket.push({name, gender: 'm'}));
-            finalFemales.forEach((name, i) => schedule[i % 6].piket.push({name, gender: 'f'}));
 
-            let allStudents = [...males, ...females];
+            // --- STRATEGI DISTRIBUSI ---
+            // Jika mode murni, kita ingin JUMAT (index 4) paling sedikit.
+            // Urutan pengisian: Sen(0), Sel(1), Rab(2), Kam(3), Sab(5), Jum(4).
+            // Dengan cara ini, Jumat adalah "keranjang terakhir" yang diisi jika ada sisa.
+            const fillOrder = [0, 1, 2, 3, 5, 4];
+
+            function distribute(list, gender) {
+                list.forEach((name, i) => {
+                    // Jika allowDuplicate aktif, pakai urutan biasa (0-5)
+                    // Jika tidak, pakai fillOrder khusus
+                    let dayIndex;
+                    if (allowDuplicate) {
+                        dayIndex = i % 6;
+                    } else {
+                        dayIndex = fillOrder[i % 6];
+                    }
+                    schedule[dayIndex].piket.push({name, gender});
+                });
+            }
+
+            distribute(finalMales, 'm');
+            distribute(finalFemales, 'f');
+
+            // --- LOGIC DOA (TETAP SAMA, 2 orang per hari) ---
+            let allStudents = [...males, ...females]; // Pakai list unik
             shuffle(allStudents);
             let doaPointer = 0;
             for(let i=0; i<6; i++) {
@@ -422,12 +471,17 @@
                     </div>`;
             });
 
-            const duplicates = Object.keys(dutyCounts).filter(name => dutyCounts[name] > 1);
+            // Tampilkan Pesan HANYA jika mode Ratakan aktif
             const msgBox = document.getElementById('appreciationSection');
-            if (duplicates.length > 0) {
-                msgBox.style.display = 'block';
-                msgBox.innerHTML = `<h3>🌟 Semangat Ekstra Minggu Ini! 🌟</h3><p>Terima kasih khusus kepada: <strong>${duplicates.join(', ')}</strong>.</p><p>Karena jumlah siswa ganjil, kalian mendapatkan tugas piket tambahan minggu ini agar adil. Minggu depan giliran teman yang lain ya! 💪</p>`;
-            } else { msgBox.style.display = 'none'; }
+            if (allowDuplicate) {
+                const duplicates = Object.keys(dutyCounts).filter(name => dutyCounts[name] > 1);
+                if (duplicates.length > 0) {
+                    msgBox.style.display = 'block';
+                    msgBox.innerHTML = `<h3>🌟 Semangat Ekstra Minggu Ini! 🌟</h3><p>Terima kasih khusus kepada: <strong>${duplicates.join(', ')}</strong>.</p><p>Karena "Mode Ratakan Jumlah" aktif, kalian mendapatkan tugas tambahan agar tim piket seimbang. Semangat! 💪</p>`;
+                } else { msgBox.style.display = 'none'; }
+            } else {
+                msgBox.style.display = 'none'; // Kalau mode murni, gak perlu pesan ini
+            }
 
             document.getElementById('inputPage').style.display = 'none';
             document.getElementById('resultPage').style.display = 'block';
