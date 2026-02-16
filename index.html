@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="id" oncontextmenu="return false">
 <head>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-G2K2X8R3FC"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-G2K2X8R3FC');
+    </script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SiPiko - Sistem Piket Kelas Otomatis</title>
@@ -168,10 +177,8 @@
         /* --- ACTION BUTTONS (RESULT PAGE) --- */
         .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         
-        /* Flexbox untuk tombol sejajar */
         .action-buttons { display: flex; gap: 10px; }
 
-        /* Style dasar tombol kecil */
         .btn-action { 
             padding: 8px 20px; 
             border-radius: 20px; 
@@ -182,26 +189,18 @@
             display: flex; align-items: center; justify-content: center;
         }
 
-        /* 1. Tombol Panduan (Kiri) - Biru Outline */
-        .btn-help-inline {
-            background: white; color: var(--accent); border: 1px solid var(--accent);
-        }
+        .btn-help-inline { background: white; color: var(--accent); border: 1px solid var(--accent); }
         .btn-help-inline:hover { background: #e3f2fd; }
 
-        /* 2. Tombol Ulang (Tengah) - Putih Garis Abu/Hitam */
-        .btn-back { 
-            background: white; color: var(--primary); border: 1px solid var(--primary); 
-        }
+        .btn-back { background: white; color: var(--primary); border: 1px solid var(--primary); }
         .btn-back:hover { background: #f0f0f0; }
         
-        /* 3. Tombol Print (Kanan) - Hijau Solid */
         .btn-print {
             background: #27ae60; color: white; border: none;
             box-shadow: 0 4px 6px rgba(39, 174, 96, 0.2); 
         }
         .btn-print:hover { background: #219150; transform: translateY(-2px); }
 
-        /* GRID KARTU */
         .schedule-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; justify-content: center; }
         .day-card {
             background: white; border-radius: 16px; overflow: hidden; box-shadow: var(--card-shadow); display: flex; flex-direction: column;
@@ -251,11 +250,8 @@
             .teacher-note { flex-direction: column; }
             .header-bar { justify-content: center; text-align: center; flex-direction: column; }
             .header-bar h2 { width: 100%; margin-bottom: 15px; }
-            
-            /* Mobile Buttons: Full Width */
             .action-buttons { width: 100%; gap: 10px; }
             .btn-action { flex: 1; padding: 10px; font-size: 12px; }
-            
             .cal-day { padding: 5px; font-size: 12px; }
             .cal-day-name { font-size: 10px; }
         }
@@ -392,7 +388,7 @@
             <div class="action-buttons">
                 <button class="btn-action btn-help-inline" onclick="toggleHelp()">❓ Panduan</button>
                 <button class="btn-action btn-back" onclick="resetApp()">🔄 Ulang</button>
-                <button class="btn-action btn-print" onclick="window.print()">🖨️ Simpan PDF</button>
+                <button class="btn-action btn-print" onclick="printSchedule()">🖨️ Simpan PDF</button>
             </div>
         </div>
 
@@ -515,6 +511,12 @@
             let rawMale = document.getElementById('inputMale').value.trim();
             let rawFemale = document.getElementById('inputFemale').value.trim();
             if (!rawMale && !rawFemale) { alert("Mohon masukkan nama siswa!"); return; }
+            
+            // TRACKING GENERATE
+            if (typeof gtag === 'function') {
+                gtag('event', 'click_generate', { 'event_category': 'Button', 'event_label': 'Generate Jadwal' });
+            }
+
             document.getElementById('loadingOverlay').style.display = 'flex';
             setTimeout(() => { document.getElementById('loadingOverlay').style.display = 'none'; processSchedule(); }, 1500);
         }
@@ -632,6 +634,15 @@
         }
 
         function resetApp() { document.getElementById('resultPage').style.display = 'none'; document.getElementById('inputPage').style.display = 'block'; }
+        
+        function printSchedule() {
+            // TRACKING PRINT
+            if (typeof gtag === 'function') {
+                gtag('event', 'click_print', { 'event_category': 'Button', 'event_label': 'Save PDF' });
+            }
+            window.print();
+        }
+
         function shuffle(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } }
     </script>
 </body>
