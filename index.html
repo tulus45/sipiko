@@ -225,7 +225,7 @@
         <div class="options-wrapper">
             <div class="checkbox-group">
                 <label class="checkbox-label">
-                    <input type="checkbox" id="allowDuplicate" checked> 
+                    <input type="checkbox" id="allowDuplicate"> 
                     🔄 Ratakan Jumlah Siswa? (Ada yang rangkap)
                 </label>
                 <label class="checkbox-label">
@@ -379,7 +379,6 @@
             document.getElementById('inputMale').value = males.join('\n');
             document.getElementById('inputFemale').value = females.join('\n');
 
-            // --- LOGIC BARU: CEK CHECKBOX RATA/TIDAK ---
             const allowDuplicate = document.getElementById('allowDuplicate').checked;
 
             function balanceArray(arr) {
@@ -393,11 +392,9 @@
             let finalMales, finalFemales;
 
             if (allowDuplicate) {
-                // Mode Lama: Pad array dengan duplikat
                 finalMales = balanceArray(males);
                 finalFemales = balanceArray(females);
             } else {
-                // Mode Baru: Biarkan murni
                 finalMales = [...males];
                 finalFemales = [...females];
             }
@@ -407,31 +404,35 @@
 
             let schedule = Array.from({length: 6}, () => ({ piket: [], doa: [] }));
 
-            // --- STRATEGI DISTRIBUSI ---
-            // Jika mode murni, kita ingin JUMAT (index 4) paling sedikit.
-            // Urutan pengisian: Sen(0), Sel(1), Rab(2), Kam(3), Sab(5), Jum(4).
-            // Dengan cara ini, Jumat adalah "keranjang terakhir" yang diisi jika ada sisa.
-            const fillOrder = [0, 1, 2, 3, 5, 4];
+            // --- LOGIKA DISTRIBUSI BARU (ESTAFET & JUMAT TERAKHIR) ---
+            // Urutan prioritas pengisian: Sen, Sel, Rab, Kam, Sab, Jum.
+            // Jumat (Index 4) ditaruh paling belakang agar jika sisa, dia yang paling kosong.
+            const priorityOrder = [0, 1, 2, 3, 5, 4]; 
+            
+            // Pointer global agar gender saling melanjutkan (Estafet)
+            // Jika Laki-laki habis di index 2, Perempuan lanjut dari index 3.
+            let globalCounter = 0;
 
             function distribute(list, gender) {
-                list.forEach((name, i) => {
-                    // Jika allowDuplicate aktif, pakai urutan biasa (0-5)
-                    // Jika tidak, pakai fillOrder khusus
+                list.forEach((name) => {
                     let dayIndex;
                     if (allowDuplicate) {
-                        dayIndex = i % 6;
+                        // Jika mode rata, pakai urutan biasa 0-5
+                        dayIndex = globalCounter % 6;
                     } else {
-                        dayIndex = fillOrder[i % 6];
+                        // Jika mode murni, pakai urutan prioritas
+                        dayIndex = priorityOrder[globalCounter % 6];
                     }
                     schedule[dayIndex].piket.push({name, gender});
+                    globalCounter++;
                 });
             }
 
             distribute(finalMales, 'm');
             distribute(finalFemales, 'f');
 
-            // --- LOGIC DOA (TETAP SAMA, 2 orang per hari) ---
-            let allStudents = [...males, ...females]; // Pakai list unik
+            // --- LOGIC DOA ---
+            let allStudents = [...males, ...females];
             shuffle(allStudents);
             let doaPointer = 0;
             for(let i=0; i<6; i++) {
@@ -471,7 +472,6 @@
                     </div>`;
             });
 
-            // Tampilkan Pesan HANYA jika mode Ratakan aktif
             const msgBox = document.getElementById('appreciationSection');
             if (allowDuplicate) {
                 const duplicates = Object.keys(dutyCounts).filter(name => dutyCounts[name] > 1);
@@ -480,7 +480,7 @@
                     msgBox.innerHTML = `<h3>🌟 Semangat Ekstra Minggu Ini! 🌟</h3><p>Terima kasih khusus kepada: <strong>${duplicates.join(', ')}</strong>.</p><p>Karena "Mode Ratakan Jumlah" aktif, kalian mendapatkan tugas tambahan agar tim piket seimbang. Semangat! 💪</p>`;
                 } else { msgBox.style.display = 'none'; }
             } else {
-                msgBox.style.display = 'none'; // Kalau mode murni, gak perlu pesan ini
+                msgBox.style.display = 'none';
             }
 
             document.getElementById('inputPage').style.display = 'none';
